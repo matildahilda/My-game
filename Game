@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ChatMaster</title>
+<style>
+  body {
+    margin: 0; font-family: Arial, sans-serif; background: black; color: white; overflow: hidden;
+  }
+  #splash {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    background: black; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 1000;
+  }
+  #splash h1 {
+    font-size: 4em; letter-spacing: 0.2em; margin: 0 0 20px 0;
+  }
+  #startBtn {
+    font-size: 1.5em; padding: 10px 30px; cursor: pointer;
+    background: #222; border: 2px solid white; border-radius: 10px; color: white;
+  }
+  #startBtn:hover {
+    background: white; color: black;
+  }
+  #container {
+    display: none; height: 100vh; background: #eee; color: black;
+    display: flex;
+  }
+  #sideMenu {
+    width: 220px; background: #222; color: white; display: flex; flex-direction: column;
+  }
+  #sideMenu button {
+    background: none; border: none; color: white; font-size: 1.2em;
+    padding: 15px 20px; cursor: pointer; text-align: left;
+    border-bottom: 1px solid #444;
+  }
+  #sideMenu button.active, #sideMenu button:hover {
+    background: #444;
+  }
+  #contentArea {
+    flex-grow: 1; padding: 15px; overflow-y: auto; background: white; color: black;
+  }
+  #chatRoom {
+    display: none; flex-direction: column; height: 100%;
+  }
+  #chatRoom.active {
+    display: flex;
+  }
+  #messages {
+    flex-grow: 1; overflow-y: auto; border: 1px solid #ccc; border-radius: 8px;
+    padding: 10px; background: #e9f7ff;
+  }
+  .message {
+    margin-bottom: 10px;
+  }
+  #chatInputArea {
+    margin-top: 10px; display: flex;
+  }
+  #chatInput {
+    flex-grow: 1; padding: 10px; font-size: 1em;
+    border: 1px solid #ccc; border-radius: 6px;
+  }
+  #sendBtn {
+    margin-left: 10px; padding: 10px 15px; font-size: 1em;
+    background: #2196F3; color: white; border: none; border-radius: 6px;
+    cursor: pointer;
+  }
+  #sendBtn:hover {
+    background: #1976D2;
+  }
+  #muteBtn {
+    position: fixed; bottom: 20px; right: 20px; background: #222;
+    border: none; color: white; padding: 10px 15px; border-radius: 25px;
+    cursor: pointer; font-weight: bold; z-index: 1500;
+  }
+  #notifications, #leaderboard, #profile, #credits, #votingPanel {
+    max-height: 80vh; overflow-y: auto;
+  }
+  #votingPanel button {
+    margin: 5px 0;
+    padding: 8px 15px;
+    border: 1px solid #444;
+    background: #f0f0f0;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  #votingPanel button:hover {
+    background: #ddd;
+  }
+  #shareBtn {
+    margin-top: 10px;
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #shareBtn:hover {
+    background: #388e3c;
+  }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <h1>CHATMASTER</h1>
+  <button id="startBtn">Start Game</button>
+</div>
+
+<div id="container">
+  <div id="sideMenu">
+    <button id="menuChat" class="active">Chat Room</button>
+    <button id="menuNotifications">Notifications</button>
+    <button id="menuLeaderboard">Leaderboard</button>
+    <button id="menuProfile">Profile</button>
+    <button id="menuCredits">Credits</button>
+    <button id="menuVoting">Voting Panel</button>
+    <button id="menuExit">Exit</button>
+  </div>
+
+  <div id="contentArea">
+    <div id="chatRoom" class="active">
+      <div id="messages"></div>
+      <div id="chatInputArea">
+        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+    <div id="notifications" style="display:none;">
+      <h3>Your Missions</h3>
+      <ul id="missionsList"></ul>
+    </div>
+    <div id="leaderboard" style="display:none;">
+      <h3>Leaderboard</h3>
+      <ol id="leaderboardList">
+        <li>Player 1 - 10 coins</li>
+        <li>Player 2 - 8 coins</li>
+        <li>Player 3 - 5 coins</li>
+      </ol>
+    </div>
+    <div id="profile" style="display:none;">
+      <h3>Your Profile</h3>
+      <p>Name: Player 1</p>
+      <p>Coins: <span id="coinsCount">0</span></p>
+      <p>Missions completed: <span id="missionsCompleted">0</span></p>
+    </div>
+    <div id="credits" style="display:none;">
+      <h3>Credits</h3>
+      <p>Game created by ChatGPT & You.</p>
+      <p>Music & Sound effects by Open Source resources.</p>
+    </div>
+    <div id="votingPanel" style="display:none;">
+      <h3>Vote Out a Player</h3>
+      <div id="playersToVote">
+        <!-- dynamically created voting buttons -->
+      </div>
+      <button id="shareBtn">Share Game Link</button>
+    </div>
+  </div>
+</div>
+
+<button id="muteBtn">Mute Music</button>
+
+<audio id="bgMusic" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2021/10/13/audio_82e51838b4.mp3?filename=ambient-dubstep-11068.mp3" type="audio/mpeg" />
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+  const splash = document.getElementById('splash');
+  const container = document.getElementById('container');
+  const startBtn = document.getElementById('startBtn');
+  const bgMusic = document.getElementById('bgMusic');
+  const muteBtn = document.getElementById('muteBtn');
+
+  // Menu buttons and content areas
+  const menuButtons = document.querySelectorAll('#sideMenu button');
+  const contentAreas = {
+    chat: document.getElementById('chatRoom'),
+    notifications: document.getElementById('notifications'),
+    leaderboard: document.getElementById('leaderboard'),
+    profile: document.getElementById('profile'),
+    credits: document.getElementById('credits'),
+    voting: document.getElementById('votingPanel'),
+  };
+
+  // Sample players for voting
+  const players = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
+
+  // Player stats
+  let coins = 0;
+  let missionsCompleted = 0;
+
+  // Missions data (secret for player)
+  const missions = [
+    "Find out who was lying about their location.",
+    "Convince Player 3 to vote with you.",
+    "Stay quiet during the first voting round.",
+    "Send a secret voice note to Player 2.",
+  ];
+
+  // Add missions to notifications list
+  function loadMissions() {
+    const list = document.getElementById('missionsList');
+    list.innerHTML = '';
+    missions.forEach(m => {
+      const li = document.createElement('li');
+      li.textContent = m;
+      list.appendChild(li);
+    });
+  }
+
+  // Voting buttons creation
+  function loadVotingButtons() {
+    const votingDiv = document.getElementById('playersToVote');
+    votingDiv.innerHTML = '';
+    players.forEach(player => {
+      const btn = document.createElement('button');
+      btn.textContent = player;
+      btn.onclick = () => {
+        alert(`You voted out ${player}! (Voting logic to be implemented)`);
+        // Here you can add real voting counting logic later
+      };
+      votingDiv.appendChild(btn);
+    });
+  }
+
+  // Start game: hide splash, show container, play music loud
+  startBtn.onclick = () => {
+    splash.style.display = 'none';
+    container.style.display = 'flex';
+    bgMusic.volume = 0.7;
+    bgMusic.play();
+    loadMissions();
+    loadVotingButtons();
+    updateProfile();
+  };
+
+  // Mute/unmute music toggle
+  muteBtn.onclick = () => {
+    if (bgMusic.muted) {
+      bgMusic.muted = false;
+      muteBtn.textContent = 'Mute Music';
+    } else {
+      bgMusic.muted = true;
+      muteBtn.textContent = 'Unmute Music';
+    }
+  };
+
+  // Menu switching logic
+  menuButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      menuButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Hide all content areas
+      Object.values(contentAreas).forEach(area => area.style.display = 'none');
+
+      // Show relevant content
+      switch(btn.id) {
+        case 'menuChat': contentAreas.chat.style.display = 'flex'; break;
+        case 'menuNotifications': contentAreas.notifications.style.display = 'block'; break;
+        case 'menuLeaderboard': contentAreas.leaderboard.style.display = 'block'; break;
+        case 'menuProfile': contentAreas.profile.style.display = 'block'; break;
+        case 'menuCredits': contentAreas.credits.style.display = 'block'; break;
+        case 'menuVoting': contentAreas.voting.style.display = 'block'; break;
+        case 'menuExit': 
+          if(confirm("Do you want to exit the game?")) {
+            location.reload();
+          }
+          break;
+      }
+    });
+  });
+
+  // Chat logic
+  const messagesDiv = document.getElementById('messages');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function addMessage(text, from='You') {
+    const msg = document.createElement('div');
+    msg.classList.add('message');
+    msg.textContent = from + ': ' + text;
+    messagesDiv.appendChild(msg);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  sendBtn.onclick = () => {
+    if (chatInput.value.trim() === '') return;
+    addMessage(chatInput.value.trim());
+    chatInput.value = '';
+  };
+  chatInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+
+  // Profile update
+  function updateProfile() {
+    document.getElementById('coinsCount').textContent = coins;
+    document.getElementById('missionsCompleted').textContent = missionsCompleted;
+  }
+
+  // Share game link button
+  document.getElementById('shareBtn').onclick = () => {
+    const gameLink = window.location.href;
+    if (navigator.share) {
+      navigator.share({
+        title: 'ChatMaster Game',
+        url: gameLink
+      }).catch(() => alert('Share canceled or failed.'));
+    } else {
+      prompt('Copy and share this game link:', gameLink);
+    }
+  };
+</script>
+
+</body>
+</html>
